@@ -1,0 +1,76 @@
+# Flutter/Dart specific
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+build/
+*.iml
+*.lock
+pubspec.lock
+
+# Android specific
+android/app/src/main/assets/flutter_assets/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/key.properties
+android/app/*.keystore
+android/app/google-services.json
+
+# iOS specific
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+ios/Runner/*.xcworkspace/xcuserdata/
+ios/Pods/
+ios/.symlinks/
+ios/build/
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Runner/Fastlane/
+ios/Runner/App.framework/
+ios/Runner/Flutter.framework/
+ios/Runner/Flutter.podspec
+ios/ServiceDefinitions.json
+
+# macOS specific
+macos/Flutter/GeneratedPluginRegistrant.swift
+macos/Flutter/ephemeral/
+macos/build/
+
+# Windows specific
+windows/flutter/ephemeral/
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugin_registrant.h
+windows/flutter/generated_plugins.cmake
+windows/build/
+
+# Linux specific
+linux/flutter/ephemeral/
+linux/flutter/generated_plugin_registrant.cc
+linux/flutter/generated_plugin_registrant.h
+linux/flutter/generated_plugins.cmake
+linux/build/
+
+# Web specific
+web/flutter_bootstrap.js
+web/index.html
+web/main.dart.js
+web/manifest.json
+web/favicon.png
+web/icons/
+web/assets/
+
+# IDE specific
+.idea/
+.vscode/
+*.swp
+*.bak
+*.swo
+
+# Other
+coverage/
+*.log
+*.DS_Store
+.env
+.env.*
