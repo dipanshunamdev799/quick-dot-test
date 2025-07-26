@@ -1,9 +1,8 @@
-import 'dart:convert';
-import 'package:quick_dot_test/src/core/utils/test_id.dart';
-import 'package:quick_dot_test/src/data/models/user_model.dart'; // Adjust import path
-import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'package:quick_dot_test/src/core/utils/test_id.dart';
+import 'package:quick_dot_test/src/data/models/user_model.dart';
 
 /// Custom exception for user-not-found errors from the API.
 class UserNotFoundException implements Exception {}
@@ -14,96 +13,126 @@ abstract class IUserDataSource {
   Future<UserModel> createUser(UserModel user);
   Future<UserModel> getUser(String userId);
   Future<UserModel> updateUser(UserModel user);
-  /// Deletes a user by their ID.
   Future<void> deleteUser(String userId);
 }
 
 /// Data source implementation that fetches user data from a remote API.
 class UserApiDataSource implements IUserDataSource {
-  /// The base URL for the backend API.
   static const String _baseUrl = 'https://your-api-domain.com/api';
-  
-  // Define endpoints as constants to avoid magic strings
   static const String _usersEndpoint = '/users';
 
   final http.Client _client;
+
+  // --- MOCK USER DATABASE ---
+  // A map to store mock users, simulating a user table in a database.
+  static final Map<String, UserModel> _mockUsers = {
+    'iMEJYT1R4sMoria34AtgrJFr4ls2': UserModel(
+      userId: 'iMEJYT1R4sMoria34AtgrJFr4ls2',
+      userName: 'Alice Wonder',
+      email: 'dipanshunamdev799@gmail.com',
+      university: 'State University of Science',
+      testsCreated: [
+        // Corresponds to the 'Flutter Widgets Mastery' test
+        TestID(
+            testCreatorId: 'iMEJYT1R4sMoria34AtgrJFr4ls2',
+            testTimeStamp: Timestamp.fromDate(DateTime(2025, 7, 20))),
+      ],
+      testsJoined: [
+        // Corresponds to the 'Data Structures & Algorithms' test
+        TestID(
+            testCreatorId: 'prof_davis',
+            testTimeStamp: Timestamp.fromDate(DateTime(2025, 6, 15))),
+        // Corresponds to the 'Quantum Physics 101' test
+        TestID(
+            testCreatorId: 'dr_einstein',
+            testTimeStamp: Timestamp.fromDate(DateTime(2025, 5, 10))),
+      ],
+    ),
+    'user_456_def': UserModel(
+      userId: 'user_456_def',
+      userName: 'Bob Builder',
+      email: 'bob.b@example.com',
+      university: 'Institute of Technology',
+      testsCreated: [],
+      testsJoined: [
+        // Corresponds to the 'Data Structures & Algorithms' test
+        TestID(
+            testCreatorId: 'prof_davis',
+            testTimeStamp: Timestamp.fromDate(DateTime(2025, 6, 15))),
+        // Corresponds to the 'Flutter Widgets Mastery' test
+        TestID(
+            testCreatorId: 'iMEJYT1R4sMoria34AtgrJFr4ls2',
+            testTimeStamp: Timestamp.fromDate(DateTime(2025, 7, 20))),
+      ],
+    ),
+    'prof_davis': UserModel(
+      userId: 'prof_davis',
+      userName: 'Prof. Evelyn Davis',
+      email: 'e.davis@inst-tech.edu',
+      university: 'Institute of Technology',
+      testsCreated: [
+        // Corresponds to the 'Data Structures & Algorithms' test
+        TestID(
+            testCreatorId: 'prof_davis',
+            testTimeStamp: Timestamp.fromDate(DateTime(2025, 6, 15))),
+      ],
+      testsJoined: [],
+    ),
+  };
+  // --- END MOCK USER DATABASE ---
 
   UserApiDataSource({http.Client? client}) : _client = client ?? http.Client();
 
   @override
   Future<UserModel> createUser(UserModel user) async {
-    // ... mock implementation is the same
-    return UserModel(
-      userId: user.userId,
+    debugPrint("--- Mock API: Creating User ${user.userName} ---");
+    await Future.delayed(const Duration(milliseconds: 500));
+    final newUser = UserModel(
+      userId: 'new_user_${DateTime.now().millisecondsSinceEpoch}',
       userName: user.userName,
       email: user.email,
       university: user.university,
       testsCreated: [],
-      testsJoined: [],
+      testsJoined: [
+        // Welcome test for all new users
+        TestID(
+            testCreatorId: 'quickdot_admin',
+            testTimeStamp: Timestamp.fromDate(DateTime(2025, 1, 1)))
+      ],
     );
-
-    /* --- REAL API IMPLEMENTATION ---
-    final uri = Uri.parse('$_baseUrl$_usersEndpoint');
-    final response = await _client.post(
-      uri,
-      headers: {'Content-Type': 'application/json; charset=UTF-8'},
-      body: json.encode(user.toJson()),
-    );
-
-    if (response.statusCode == 201) { // 201 Created
-      return UserModel.fromJson(json.decode(response.body));
-    } else {
-      throw Exception('Failed to create user: ${response.statusCode}');
-    }
-    */
+    // Add the new user to the mock store for this session
+    _mockUsers[newUser.userId] = newUser;
+    return newUser;
   }
 
   @override
   Future<UserModel> getUser(String userId) async {
-    // ... mock implementation is the same
-    return UserModel(
-      userId: userId,
-      userName: 'Mock User',
-      email: 'mock.user@example.com',
-      university: 'Flutter University',
-      testsCreated: [TestID(testCreatorId: 'creator_abc', testTimeStamp: Timestamp.now())],
-      testsJoined: [TestID(testCreatorId: 'creator_xyz', testTimeStamp: Timestamp.now())],
-    );
+    debugPrint("--- Mock API: Getting User $userId ---");
+    await Future.delayed(const Duration(milliseconds: 600));
 
-    /* --- REAL API IMPLEMENTATION ---
-    final uri = Uri.parse('$_baseUrl$_usersEndpoint/$userId');
-    final response = await _client.get(uri, headers: {'Content-Type': 'application/json'});
-
-    if (response.statusCode == 200) {
-      return UserModel.fromJson(json.decode(response.body));
-    } else if (response.statusCode == 404) {
-      throw UserNotFoundException();
+    if (_mockUsers.containsKey(userId)) {
+      return _mockUsers[userId]!;
     } else {
-      throw Exception('Failed to load user: ${response.statusCode}');
+      // Throwing an exception is more realistic for a failed API call.
+      throw UserNotFoundException();
     }
-    */
   }
-  
-  // ... other methods (updateUser, deleteUser) would be updated similarly.
+
   @override
   Future<UserModel> updateUser(UserModel user) async {
-    /* --- REAL API IMPLEMENTATION ---
-    final uri = Uri.parse('$_baseUrl$_usersEndpoint/${user.userId}');
-    ...
-    */
-    debugPrint("--- Calling User API: Updating User ---");
+    debugPrint("--- Mock API: Updating User ${user.userId} ---");
     await Future.delayed(const Duration(seconds: 1));
+    if (_mockUsers.containsKey(user.userId)) {
+      _mockUsers[user.userId] = user; // Update in the mock store
+    }
     return user;
   }
 
   @override
   Future<void> deleteUser(String userId) async {
-    /* --- REAL API IMPLEMENTATION ---
-    final uri = Uri.parse('$_baseUrl$_usersEndpoint/$userId');
-    ...
-    */
-    debugPrint("--- Calling User API: Deleting User $userId ---");
+    debugPrint("--- Mock API: Deleting User $userId ---");
     await Future.delayed(const Duration(seconds: 1));
+    _mockUsers.remove(userId); // Remove from the mock store
     return;
   }
 }

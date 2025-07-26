@@ -3,10 +3,15 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:quick_dot_test/src/core/utils/auth_service.dart';
 import 'package:quick_dot_test/src/core/utils/test_id.dart';
+import 'package:quick_dot_test/src/data/repositories/test_repository.dart';
 import 'package:quick_dot_test/src/logic/user_provider.dart';
 import 'package:quick_dot_test/src/presentation/screens/auth_screen.dart';
 import 'package:quick_dot_test/src/presentation/screens/edit_profile_screen.dart';
-import 'package:quick_dot_test/src/presentation/screens/view_results_screen.dart';
+import 'package:quick_dot_test/src/presentation/screens/joined_test_detail_screen.dart';
+// ADDED: Import for the Join Test screen
+import 'package:quick_dot_test/src/presentation/screens/join_test_screen.dart';
+import 'package:quick_dot_test/src/presentation/screens/result_screen.dart';
+
 
 /// The main screen after a user logs in.
 /// It's composed of modular widgets for each section.
@@ -15,19 +20,14 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // FIX: Data fetching is now delegated to the specific widgets that need it
-    // using `context.select`. This prevents the entire HomeScreen from rebuilding
-    // when user data changes, improving performance.
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
-        // AppBar actions are encapsulated in their own widget.
         actions: const [_AppBarActions()],
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         children: const [
-          // FIX: Widgets now fetch their own data, making them more self-contained.
           _GreetingCard(),
           SizedBox(height: 24),
           _FeatureGrid(),
@@ -41,7 +41,6 @@ class HomeScreen extends StatelessWidget {
 
 // --- MODULAR WIDGETS ---
 
-// BEST PRACTICE: Using an enum for menu actions is safer than raw strings.
 enum _MenuAction { signOut, deleteAccount }
 
 /// Widget for displaying AppBar actions and handling their logic.
@@ -55,10 +54,9 @@ class _AppBarActions extends StatelessWidget {
         IconButton(
           icon: const Icon(Icons.info_outline),
           tooltip: 'Information',
-          onPressed: () => _showInfoDialog(context),
+          onPressed: () => _showInfoDialog(context),  
         ),
         PopupMenuButton<_MenuAction>(
-          // FIX: Switched from String to the `_MenuAction` enum.
           onSelected: (value) => _handleMenuSelection(context, value),
           itemBuilder: (BuildContext context) => <PopupMenuEntry<_MenuAction>>[
             const PopupMenuItem<_MenuAction>(
@@ -85,7 +83,6 @@ class _AppBarActions extends StatelessWidget {
     );
   }
 
-  // FIX: Using a switch statement with the enum is cleaner and safer.
   void _handleMenuSelection(BuildContext context, _MenuAction value) {
     switch (value) {
       case _MenuAction.signOut:
@@ -97,9 +94,7 @@ class _AppBarActions extends StatelessWidget {
     }
   }
 
-  // BEST PRACTICE: Extracted sign-out logic into its own method.
   Future<void> _signOut(BuildContext context) async {
-    // It's good practice to get the provider with listen: false inside a method.
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final authService = AuthService();
 
@@ -123,15 +118,18 @@ class _AppBarActions extends StatelessWidget {
             children: <Widget>[
               _buildInfoTile(context,
                   icon: Icons.star_outline,
-                  text: 'If you enjoy this software, please consider rating it on the Play Store.'),
+                  text:
+                      'If you enjoy this software, please consider rating it on the Play Store.'),
               const SizedBox(height: 16),
               _buildInfoTile(context,
                   icon: Icons.upload_file_outlined,
-                  text: 'Create Test: Upload a PDF, get test questions, and generate a test session.'),
+                  text:
+                      'Create Test: Upload a PDF, get test questions, and generate a test session.'),
               const SizedBox(height: 16),
               _buildInfoTile(context,
                   icon: Icons.group_work_outlined,
-                  text: 'Anyone with a test ID can join the session when the test is live.'),
+                  text:
+                      'Anyone with a test ID can join the session when the test is live.'),
               const SizedBox(height: 16),
               _buildInfoTile(context,
                   icon: Icons.history_toggle_off_outlined,
@@ -149,7 +147,8 @@ class _AppBarActions extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoTile(BuildContext context, {required IconData icon, required String text}) {
+  Widget _buildInfoTile(BuildContext context,
+      {required IconData icon, required String text}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -170,7 +169,8 @@ class _AppBarActions extends StatelessWidget {
       builder: (BuildContext dialogContext) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Delete Account?'),
-          content: const Text('This will permanently delete your account and all associated data. This action cannot be undone.'),
+          content: const Text(
+              'This will permanently delete your account and all associated data. This action cannot be undone.'),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
@@ -179,28 +179,29 @@ class _AppBarActions extends StatelessWidget {
             if (isDeleting)
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20.0),
-                child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator()),
+                child: SizedBox(
+                    width: 24, height: 24, child: CircularProgressIndicator()),
               )
             else
               FilledButton.tonal(
-                style: FilledButton.styleFrom(backgroundColor: Colors.red.shade100, foregroundColor: Colors.red.shade900),
+                style: FilledButton.styleFrom(
+                    backgroundColor: Colors.red.shade100,
+                    foregroundColor: Colors.red.shade900),
                 onPressed: () async {
                   setState(() => isDeleting = true);
                   final success = await userProvider.deleteCurrentUser();
 
-                  // FIX: Added a `mounted` check for the original context before showing a SnackBar.
-                  // This prevents errors if the user navigates away while the deletion is processing.
                   if (!context.mounted) return;
 
                   Navigator.of(dialogContext).pop();
 
                   if (success) {
-                    // The sign-out logic is already encapsulated in the `_signOut` method.
                     await _signOut(context);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(userProvider.error ?? 'Failed to delete account. Please try again.'),
+                        content: Text(userProvider.error ??
+                            'Failed to delete account. Please try again.'),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -221,8 +222,8 @@ class _GreetingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // PERFORMANCE: `context.select` ensures this widget only rebuilds if `userName` changes.
-    final String userName = context.select((UserProvider p) => p.user?.userName ?? 'User');
+    final String userName =
+        context.select((UserProvider p) => p.user?.userName ?? 'User');
 
     return Card(
       color: Theme.of(context).colorScheme.primary,
@@ -231,9 +232,15 @@ class _GreetingCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Hello, $userName!', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.onPrimary, fontWeight: FontWeight.bold)),
+            Text('Hello, $userName!',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text('Ready to challenge yourself or create a new quiz?', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.9))),
+            Text('Ready to challenge yourself or create a new quiz?',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color:
+                        Theme.of(context).colorScheme.onPrimary.withOpacity(0.9))),
           ],
         ),
       ),
@@ -250,7 +257,8 @@ class _FeatureGrid extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('What would you like to do?', style: Theme.of(context).textTheme.titleLarge),
+        Text('What would you like to do?',
+            style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 16),
         GridView.count(
           crossAxisCount: 2,
@@ -259,17 +267,30 @@ class _FeatureGrid extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           children: [
-            _FeatureCard(icon: Icons.create_outlined, title: 'Create Test', onTap: () {/* TODO: Nav to create */}),
-            _FeatureCard(icon: Icons.group_add_outlined, title: 'Join Test', onTap: () {/* TODO: Nav to join */}),
+            _FeatureCard(
+                icon: Icons.create_outlined,
+                title: 'Create Test',
+                onTap: () {/* TODO: Nav to create */}),
+            // --- MODIFICATION START ---
+            _FeatureCard(
+              icon: Icons.group_add_outlined,
+              title: 'Join Test',
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const JoinTestScreen(),
+              )),
+            ),
+            // --- MODIFICATION END ---
             _FeatureCard(
               icon: Icons.history_outlined,
               title: 'View Results',
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => const ViewResultsScreen())),
+              onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => const ResultScreen())),
             ),
             _FeatureCard(
               icon: Icons.person_outline,
               title: 'Edit Profile',
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => const EditProfileScreen())),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => const EditProfileScreen())),
             ),
           ],
         ),
@@ -283,7 +304,8 @@ class _FeatureCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final VoidCallback onTap;
-  const _FeatureCard({required this.icon, required this.title, required this.onTap});
+  const _FeatureCard(
+      {required this.icon, required this.title, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -296,7 +318,9 @@ class _FeatureCard extends StatelessWidget {
           children: [
             Icon(icon, size: 48, color: Theme.of(context).colorScheme.primary),
             const SizedBox(height: 16),
-            Text(title, style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
+            Text(title,
+                style: Theme.of(context).textTheme.titleMedium,
+                textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -310,8 +334,10 @@ class _RecentActivitySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // PERFORMANCE: `context.select` ensures this widget only rebuilds if the list of tests changes.
-    final List<TestID> recentTests = context.select((UserProvider p) => p.recentActivity);
+    final List<TestID> recentTests =
+        context.select((UserProvider p) => p.user?.testsJoined ?? []);
+
+    recentTests.sort((a, b) => b.testTimeStamp.compareTo(a.testTimeStamp));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -322,16 +348,15 @@ class _RecentActivitySection extends StatelessWidget {
           const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 32.0),
-              child: Text('Join a test to see your activity here!', style: TextStyle(color: Colors.grey)),
+              child: Text('Join a test to see your activity here! 🚀',
+                  style: TextStyle(color: Colors.grey)),
             ),
           )
         else
-          // CLEANUP: Using the spread operator `...` is a cleaner way to insert a list of
-          // widgets than creating an unnecessary intermediate Column.
-          ...recentTests.take(5).map((test) {
+          ...recentTests.take(5).map((testId) {
             return _RecentActivityTile(
-              title: 'Test Joined',
-              subtitle: 'On: ${DateFormat.yMMMd().add_jm().format(test.testTimeStamp.toDate())}',
+              key: ValueKey(testId), // Using testId as a stable key
+              testId: testId,
             );
           }),
       ],
@@ -339,20 +364,108 @@ class _RecentActivitySection extends StatelessWidget {
   }
 }
 
-/// The list tile used within the [_RecentActivitySection].
-class _RecentActivityTile extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  const _RecentActivityTile({required this.title, required this.subtitle});
+/// Fetches and displays the details for a single test participation.
+class _RecentActivityTile extends StatefulWidget {
+  final TestID testId;
+  const _RecentActivityTile({super.key, required this.testId});
+
+  @override
+  State<_RecentActivityTile> createState() => _RecentActivityTileState();
+}
+
+class _RecentActivityTileState extends State<_RecentActivityTile> {
+  late final Future<ParticipationDetails> _detailsFuture;
+  final TestRepository _testRepository = TestRepository.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    final userId =
+        Provider.of<UserProvider>(context, listen: false).user?.userId;
+
+    if (userId != null) {
+      _detailsFuture = _testRepository.getParticipationDetails(
+        testId: widget.testId,
+        userId: userId,
+      );
+    } else {
+      _detailsFuture = Future.error('User not logged in.');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12.0),
-      child: ListTile(
-        leading: Icon(Icons.history_edu_outlined, color: Theme.of(context).colorScheme.secondary),
-        title: Text(title, style: Theme.of(context).textTheme.titleMedium),
-        subtitle: Text(subtitle),
+      child: FutureBuilder(
+        future: _detailsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const ListTile(
+              leading: Icon(Icons.history_edu_outlined),
+              title: Text('Loading activity...'),
+              trailing: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
+            );
+          }
+          if (snapshot.hasError) {
+            return ListTile(
+              leading: Icon(Icons.error_outline, color: Colors.red.shade400),
+              title: const Text('Failed to load details'),
+              subtitle: Text(
+                snapshot.error.toString(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+          }
+          if (snapshot.hasData) {
+            final details = snapshot.data!;
+            return ListTile(
+              leading: Icon(Icons.history_edu_outlined,
+                  color: Theme.of(context).colorScheme.secondary),
+              title: Text(details.testName,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              subtitle: Text(
+                'Score: ${details.marksObtained} / ${details.totalMarks}  •  On: ${DateFormat.yMMMd().format(details.timestamp)}',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                // Get the user ID again (safely)
+                final userId = Provider.of<UserProvider>(context, listen: false)
+                    .user
+                    ?.userId;
+
+                // Navigate only if we have a valid user ID
+                if (userId != null) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => JoinedTestDetailScreen(
+                        testId: widget.testId,
+                        userId: userId,
+                      ),
+                    ),
+                  );
+                } else {
+                  // Optionally, show an error if the user is somehow logged out
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Could not open details. Please sign in again.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+            );
+          }
+          return const SizedBox.shrink();
+        },
       ),
     );
   }

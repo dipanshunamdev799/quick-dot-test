@@ -36,7 +36,7 @@ class AuthScreen extends StatelessWidget {
   }
 }
 
-// --- SIGN IN VIEW (Updated to call UserProvider) ---
+// --- SIGN IN VIEW (FIXED) ---
 class _SignInView extends StatefulWidget {
   const _SignInView();
 
@@ -50,6 +50,7 @@ class _SignInViewState extends State<_SignInView> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -61,23 +62,17 @@ class _SignInViewState extends State<_SignInView> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      // Step 1: Sign in with Firebase Auth
-      await _authService.signInWithEmailPassword(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
 
+      // Step 1: Sign in with Firebase Auth
+      final user = await _authService.signInWithEmailPassword(email, password);
       if (!mounted) return;
 
-      // Step 2: Get the current user from Firebase
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null || user.email == null) {
-        throw Exception('Sign in successful, but user data is unavailable.');
-      }
 
-      // **MODIFIED: Fetch user data via the provider**
+      // Step 2: Fetch user data via the provider using the correct ID
       final userProvider = Provider.of<UserProvider>(context, listen: false);
-      await userProvider.fetchUser(userId: user.uid, email: user.email!);
+      await userProvider.fetchUser(userId: user!.uid, email: email);
 
       // Step 3: Navigate to home screen on success
       if (!mounted) return;
@@ -90,14 +85,11 @@ class _SignInViewState extends State<_SignInView> {
       String errorMessage = 'An error occurred. Please check your credentials.';
       if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
         errorMessage = 'Invalid email or password. Please try again.';
-      } else if (e.code == 'email-not-verified') {
-        errorMessage = 'Please verify your email before signing in.';
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
     } catch (e) {
-      // Catch errors from the provider or other unexpected issues
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to load user profile: ${e.toString()}')));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -142,7 +134,7 @@ class _SignInViewState extends State<_SignInView> {
   }
 }
 
-// --- SIGN UP VIEW (No changes needed here) ---
+// --- SIGN UP VIEW (No changes needed) ---
 class _SignUpView extends StatefulWidget {
   const _SignUpView();
   @override
@@ -248,7 +240,8 @@ class _SignUpViewState extends State<_SignUpView> {
   }
 }
 
-// --- GOOGLE SIGN IN BUTTON (Updated to call UserProvider) ---
+
+// --- GOOGLE SIGN IN BUTTON (FIXED) ---
 class _GoogleSignInButton extends StatefulWidget {
   const _GoogleSignInButton();
 
@@ -260,6 +253,8 @@ class _GoogleSignInButtonState extends State<_GoogleSignInButton> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
+
+
   void _googleSignIn() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
@@ -268,8 +263,8 @@ class _GoogleSignInButtonState extends State<_GoogleSignInButton> {
       final user = await _authService.signInWithGoogle();
       if (!mounted) return;
 
-      if (user != null) {
-        // **MODIFIED: Fetch user data via the provider**
+      if (user != null && user.email != null) {
+        
         final userProvider = Provider.of<UserProvider>(context, listen: false);
         await userProvider.fetchUser(userId: user.uid, email: user.email!);
         
@@ -280,7 +275,7 @@ class _GoogleSignInButtonState extends State<_GoogleSignInButton> {
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Google Sign-in was cancelled.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Google Sign-in was cancelled or email is unavailable.')));
       }
     } catch (e) {
       if (!mounted) return;
